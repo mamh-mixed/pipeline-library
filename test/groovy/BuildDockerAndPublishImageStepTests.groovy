@@ -29,6 +29,7 @@ class BuildDockerAndPublishImageStepTests extends BaseTest {
     helper.registerAllowedMethod('hadoLint', [Map.class], { m -> m.pattern })
     helper.registerAllowedMethod('libraryResource', [String.class], { '' })
     helper.registerAllowedMethod('fileExists', [String.class], { true })
+    helper.registerAllowedMethod('junit', [String.class], { s -> s })
 
     // Define mocks/stubs for the data objects
     infraConfig = new StubFor(InfraConfig.class)
@@ -78,7 +79,8 @@ class BuildDockerAndPublishImageStepTests extends BaseTest {
     assertTrue(assertMethodCallContainsPattern('sh','img login'))
     assertTrue(assertMethodCallContainsPattern('sh','img logout'))
 
-    // And the correct artefacts/report exported
+    // And generated reports are recorded
+    assertTrue(assertMethodCallContainsPattern('junit','cst-report.xml'))
     assertTrue(assertMethodCallContainsPattern('recordIssues', '{enabledForFailure=true, tool=hadolint.json}'))
 
     // And all mocked/stubbed methods have to be called
@@ -199,6 +201,75 @@ class BuildDockerAndPublishImageStepTests extends BaseTest {
 
     // With no test stage
     assertFalse(assertMethodCallContainsPattern('sh','make test'))
+
+    // And all mocked/stubbed methods have to be called
+    infraConfig.expect.verify()
+    dockerConfig.expect.verify()
+  }
+
+  @Test
+  void itFailFastButRecordReportWhenLintFails() throws Exception {
+    def script = loadScript(scriptName)
+
+    // when building a Docker Image which fails to pass the lint stage
+    helper.registerAllowedMethod("sh", [String.class], {cmd->
+      if (cmd.contains('make lint')) {
+        binding.getVariable('currentBuild').result = 'FAILURE'
+      }
+    })
+    dockerConfig.demand.with {
+      getMainBranch{ 'dev' }
+    }
+    infraConfig.use {
+      dockerConfig.use {
+        script.call(testImageName)
+      }
+    }
+    printCallStack()
+
+    // Then we expect a failed build
+    assertJobStatusFailure()
+
+    // With a lint stage but no build stage
+    assertTrue(assertMethodCallContainsPattern('sh','make lint'))
+    assertFalse(assertMethodCallContainsPattern('sh','make build'))
+
+    // And a lint report recorded
+    assertTrue(assertMethodCallContainsPattern('recordIssues', '{enabledForFailure=true, tool=hadolint.json}'))
+
+    // And all mocked/stubbed methods have to be called
+    infraConfig.expect.verify()
+    dockerConfig.expect.verify()
+  }
+
+  @Test
+  void itFailFastButRecordReportWhenTestFails() throws Exception {
+    def script = loadScript(scriptName)
+
+    // when building a Docker Image which fails to pass the lint stage
+    helper.registerAllowedMethod("sh", [String.class], {cmd->
+      if (cmd.contains('make test')) {
+        binding.getVariable('currentBuild').result = 'FAILURE'
+      }
+    })
+    dockerConfig.demand.with {
+      getMainBranch{ 'dev' }
+    }
+    infraConfig.use {
+      dockerConfig.use {
+        script.call(testImageName)
+      }
+    }
+    printCallStack()
+
+    // Then we expect a failed build
+    assertJobStatusFailure()
+
+    // With a test stage
+    assertTrue(assertMethodCallContainsPattern('sh','make test'))
+
+    // And a lint report recorded
+    assertTrue(assertMethodCallContainsPattern('junit','cst-report.xml'))
 
     // And all mocked/stubbed methods have to be called
     infraConfig.expect.verify()

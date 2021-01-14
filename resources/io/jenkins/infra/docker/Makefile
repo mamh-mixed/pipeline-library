@@ -51,7 +51,8 @@ clean: ## Delete any file generated during the build steps
 
 test: ## Execute the test harness on the Docker Image archive at $(IMAGE_ARCHIVE)
 	@echo "== Testing $(IMAGE_NAME) from $(IMAGE_ARCHIVE)..."
-	@container-structure-test test --driver=tar --image=$(IMAGE_ARCHIVE) --config=$(PWD)/cst.yml
+	@echo "Writing test report to $(PWD)/cst-result.xml..."
+	@container-structure-test test --driver=tar --image=$(IMAGE_ARCHIVE) --config=$(PWD)/cst.yml --output=junit --test-report=$(PWD)/cst-result.xml
 	@echo "== Test ✅ Succeeded"
 
 ## This steps expects that you are logged to the Docker registry to push image into
