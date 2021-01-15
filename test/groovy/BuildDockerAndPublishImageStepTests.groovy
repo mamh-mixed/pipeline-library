@@ -269,7 +269,7 @@ class BuildDockerAndPublishImageStepTests extends BaseTest {
     assertTrue(assertMethodCallContainsPattern('sh','make test'))
 
     // And a lint report recorded
-    assertTrue(assertMethodCallContainsPattern('junit','cst-report.xml'))
+    assertTrue(assertMethodCallContainsPattern('junit','cst-result.xml'))
 
     // And all mocked/stubbed methods have to be called
     infraConfig.expect.verify()
