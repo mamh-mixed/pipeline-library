@@ -72,7 +72,7 @@ def call(String imageName, Map config=[:]) {
         } // steps
         post {
           always {
-            junit 'cst-result.xml'
+            junit '**/*.xml'
           }
         } // post
       } //stage
