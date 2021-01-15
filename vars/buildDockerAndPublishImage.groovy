@@ -72,7 +72,7 @@ def call(String imageName, Map config=[:]) {
         } // steps
         post {
           always {
-            junit '**/*.xml'
+            archiveArtifacts '**/*.xml'
           }
         } // post
       } //stage
